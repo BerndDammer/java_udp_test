@@ -20,140 +20,137 @@ import javafx.concurrent.Task;
 
 // TODO add logger
 public class WebsocketStringService extends Service<Void> {
-	static class Ticker {
-		private long nextEvent;
-		private final long delayMs;
-		private long thisTimeout;
+    static class Ticker {
+        private long nextEvent;
+        private final long delayMs;
+        private long thisTimeout;
 
-		Ticker(int delayMs) {
-			this.delayMs = (long) delayMs;
-			long now = System.currentTimeMillis();
-			nextEvent = delayMs + now;
-			thisTimeout = now - nextEvent;
-		}
+        Ticker(int delayMs) {
+            this.delayMs = (long) delayMs;
+            long now = System.currentTimeMillis();
+            nextEvent = delayMs + now;
+            thisTimeout = now - nextEvent;
+        }
 
-		void test()
-		{
-			thisTimeout = nextEvent - System.currentTimeMillis();
-		}
-		boolean isBehind() {
-			return thisTimeout <= 0l;
-		}
+        void test() {
+            thisTimeout = nextEvent - System.currentTimeMillis();
+        }
 
-		long nextTimeout() {
-			return thisTimeout;
-		}
+        boolean isBehind() {
+            return thisTimeout <= 0l;
+        }
 
-		void tick() {
-			nextEvent += delayMs;
-		}
-	}
+        long nextTimeout() {
+            return thisTimeout;
+        }
 
-	public interface NonFXThreadEventReciever {
-		public void xonNewText();
-	}
+        void tick() {
+            nextEvent += delayMs;
+        }
+    }
 
-	public class WebsocketTask extends Task<Void> {
+    public interface NonFXThreadEventReciever {
+        public void xonNewText();
+    }
 
-		public WebsocketTask() {
-		}
+    public class WebsocketTask extends Task<Void> {
 
-		@Override
-		protected Void call() throws Exception {
-			updateMessage("Starting");
-			int counter = 0;
+        public WebsocketTask() {
+        }
 
-			DatagramChannel dc = DatagramChannel.open(StandardProtocolFamily.INET)
-					.setOption(StandardSocketOptions.SO_BROADCAST, true)
-					.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true)
-					.setOption(StandardSocketOptions.SO_REUSEADDR, true)
-					.bind(new InetSocketAddress(General.MULTICAST_PORT));
+        @Override
+        protected Void call() throws Exception {
+            updateMessage("Starting");
+            int counter = 0;
 
-			MembershipKey mkkey;
-			{
-				{
-					MulticastSocket ms = new MulticastSocket();
-					NetworkInterface ni = ms.getNetworkInterface();
-					System.out.println(ni.getDisplayName());
-					System.out.println(ni.getName());
-				}
-				Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+            DatagramChannel dc = DatagramChannel.open(StandardProtocolFamily.INET)
+                    .setOption(StandardSocketOptions.SO_BROADCAST, true)
+                    .setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true)
+                    .setOption(StandardSocketOptions.SO_REUSEADDR, true)
+                    .bind(new InetSocketAddress(General.MULTICAST_PORT));
 
-				// NetworkInterface ni = NetworkInterface.getByName(General.IF_NAME);
-				// NetworkInterface ni =
-				// NetworkInterface.getByInetAddress(InetAddress.getByName("192.168.178.20"));
-				NetworkInterface ni = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
-				dc.setOption(StandardSocketOptions.IP_MULTICAST_IF, ni);
-				mkkey = dc.join(InetAddress.getByName("224.0.0.1"), ni);
-			}
+            MembershipKey mkkey;
+            {
+                {
+                    MulticastSocket ms = new MulticastSocket();
+                    NetworkInterface ni = ms.getNetworkInterface();
+                    System.out.println(ni.getDisplayName());
+                    System.out.println(ni.getName());
+                }
+                Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
 
-			Selector selector = Selector.open();
-			dc.configureBlocking(false);
-			SelectionKey key = dc.register(selector, SelectionKey.OP_READ);
-			ByteBuffer byteBuffer = ByteBuffer.allocate(General.BUFFER_SIZE);
+                // NetworkInterface ni = NetworkInterface.getByName(General.IF_NAME);
+                // NetworkInterface ni =
+                // NetworkInterface.getByInetAddress(InetAddress.getByName("192.168.178.20"));
+                NetworkInterface ni = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
+                dc.setOption(StandardSocketOptions.IP_MULTICAST_IF, ni);
+                mkkey = dc.join(InetAddress.getByName("224.0.0.1"), ni);
+            }
 
-			Ticker ticker = new Ticker(1200);
-			updateMessage("Running");
-			int transmitCounter = 0;
-			while (!isCancelled()) {
-				int channels;
-				ticker.test();
-				if( ticker.isBehind())
-				{
-					channels = selector.selectNow();
-				}
-				else
-				{
-					channels = selector.select(ticker.nextTimeout());
-				}
-				if (channels == 0) {
-					// timeout
-					byteBuffer.clear();
-					byteBuffer.put("jfewofjewofjew".getBytes());
-					byteBuffer.flip();
-					dc.send(byteBuffer, General.FINAL_DESTINATION);
-					ticker.tick();
-					System.out.println("TRansmittCounter" + (++transmitCounter));
-				} else {
-					for (SelectionKey skey : selector.selectedKeys()) {
-						skey.channel();
-						byteBuffer.clear();
-						SocketAddress isa = dc.receive(byteBuffer);
-						updateMessage("Got data from: " + isa + "  Count: " + counter++);
-						selector.selectedKeys().remove(skey); // nercessary ????
-					}
-				}
-			}
-			selector.close();
-			key.cancel();
+            Selector selector = Selector.open();
+            dc.configureBlocking(false);
+            SelectionKey key = dc.register(selector, SelectionKey.OP_READ);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(General.BUFFER_SIZE);
 
-			mkkey.drop();
-			dc.close();
+            Ticker ticker = new Ticker(1200);
+            updateMessage("Running");
+            int transmitCounter = 0;
+            while (!isCancelled()) {
+                int channels;
+                ticker.test();
+                if (ticker.isBehind()) {
+                    channels = selector.selectNow();
+                } else {
+                    channels = selector.select(ticker.nextTimeout());
+                }
+                if (channels == 0) {
+                    // timeout
+                    byteBuffer.clear();
+                    byteBuffer.put("jfewofjewofjew".getBytes());
+                    byteBuffer.flip();
+                    dc.send(byteBuffer, General.FINAL_DESTINATION);
+                    ticker.tick();
+                    System.out.println("TRansmittCounter" + (++transmitCounter));
+                } else {
+                    for (SelectionKey skey : selector.selectedKeys()) {
+                        skey.channel();
+                        byteBuffer.clear();
+                        SocketAddress isa = dc.receive(byteBuffer);
+                        updateMessage("Got data from: " + isa + "  Count: " + counter++);
+                        selector.selectedKeys().remove(skey); // nercessary ????
+                    }
+                }
+            }
+            selector.close();
+            key.cancel();
 
-			updateMessage("Bye!");
-			return null;
-		}
-	}
+            mkkey.drop();
+            dc.close();
 
-	public LinkedBlockingQueue<String> getSourceQueue() {
-		return sourceQueue;
-	}
+            updateMessage("Bye!");
+            return null;
+        }
+    }
 
-	public LinkedBlockingQueue<String> getSinkQueue() {
-		return sinkQueue;
-	}
+    public LinkedBlockingQueue<String> getSourceQueue() {
+        return sourceQueue;
+    }
 
-	private final LinkedBlockingQueue<String> sourceQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
-	private final LinkedBlockingQueue<String> sinkQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
+    public LinkedBlockingQueue<String> getSinkQueue() {
+        return sinkQueue;
+    }
+
+    private final LinkedBlockingQueue<String> sourceQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
+    private final LinkedBlockingQueue<String> sinkQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
 //	private final NonFXThreadEventReciever nonFXThreadEventReciever;
 //	private URI uri;
 
-	public WebsocketStringService() {
-	}
+    public WebsocketStringService() {
+    }
 
-	@Override
-	protected Task<Void> createTask() {
+    @Override
+    protected Task<Void> createTask() {
 
-		return new WebsocketTask();
-	}
+        return new WebsocketTask();
+    }
 }

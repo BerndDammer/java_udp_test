@@ -9,58 +9,58 @@ public class MainframeController extends MainframeControllerValues {
 //implements NonFXThreadEventReciever {
 
 //	private final FXTimer transmittWorker = new FXTimer(this::onTransmitt);
-	private final WebsocketStringService websocketService = new WebsocketStringService();
-	private final GridPane rootNode;
+    private final WebsocketStringService websocketService = new WebsocketStringService();
+    private final GridPane rootNode;
 
-	public MainframeController() {
-		rootNode = new MainframeLoader(this);
+    public MainframeController() {
+        rootNode = new MainframeLoader(this);
 
-		//////////////////////////////
-		/////////// Action Connections
-		onActionPropertyStartButton.setValue(this::onStart);
-		onActionPropertyStopButton.setValue(this::onStop);
+        //////////////////////////////
+        /////////// Action Connections
+        onActionPropertyStartButton.setValue(this::onStart);
+        onActionPropertyStopButton.setValue(this::onStop);
 
-		message.bind(websocketService.messageProperty());
-		title.bind(websocketService.titleProperty());
+        message.bind(websocketService.messageProperty());
+        title.bind(websocketService.titleProperty());
 
-		websocketService.stateProperty().addListener(this::onNewWorkerState);
-	}
+        websocketService.stateProperty().addListener(this::onNewWorkerState);
+    }
 
-	public void onStart(ActionEvent event) {
-		websocketService.reset();
-		websocketService.start();
-	}
+    public void onStart(ActionEvent event) {
+        websocketService.reset();
+        websocketService.start();
+    }
 
-	public void onStop(ActionEvent event) {
-		websocketService.cancel();
-	}
+    public void onStop(ActionEvent event) {
+        websocketService.cancel();
+    }
 
-	void onNewWorkerState(ObservableValue<? extends Worker.State> observable, Worker.State oldValue,
-			Worker.State newValue) {
+    void onNewWorkerState(ObservableValue<? extends Worker.State> observable, Worker.State oldValue,
+            Worker.State newValue) {
 
-		// stateWorker.setValue(newValue);
-		switch (newValue) {
-		case FAILED: {
-			Throwable t = websocketService.getException();
-			t.printStackTrace();
-			disablePropertyStartButton.setValue(false);
-		}
-			break;
-		case CANCELLED:
-		case READY:
-		case SCHEDULED:
-		case SUCCEEDED:
-			disablePropertyStartButton.setValue(false);
-			break;
-		case RUNNING:
-			disablePropertyStartButton.setValue(true);
-			break;
-		}
-	}
+        // stateWorker.setValue(newValue);
+        switch (newValue) {
+        case FAILED: {
+            Throwable t = websocketService.getException();
+            t.printStackTrace();
+            disablePropertyStartButton.setValue(false);
+        }
+            break;
+        case CANCELLED:
+        case READY:
+        case SCHEDULED:
+        case SUCCEEDED:
+            disablePropertyStartButton.setValue(false);
+            break;
+        case RUNNING:
+            disablePropertyStartButton.setValue(true);
+            break;
+        }
+    }
 
-	public GridPane getRootNode() {
-		return rootNode;
-	}
+    public GridPane getRootNode() {
+        return rootNode;
+    }
 
 //	@Override
 //	public void xonNewText() {
