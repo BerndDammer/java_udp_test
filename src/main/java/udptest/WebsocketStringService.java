@@ -20,6 +20,35 @@ import javafx.concurrent.Task;
 
 // TODO add logger
 public class WebsocketStringService extends Service<Void> {
+	static class Ticker {
+		private long nextEvent;
+		private final long delayMs;
+		private long thisTimeout;
+
+		Ticker(int delayMs) {
+			this.delayMs = (long) delayMs;
+			long now = System.currentTimeMillis();
+			nextEvent = delayMs + now;
+			thisTimeout = now - nextEvent;
+		}
+
+		void test()
+		{
+			thisTimeout = nextEvent - System.currentTimeMillis();
+		}
+		boolean isBehind() {
+			return thisTimeout <= 0l;
+		}
+
+		long nextTimeout() {
+			return thisTimeout;
+		}
+
+		void tick() {
+			nextEvent += delayMs;
+		}
+	}
+
 	public interface NonFXThreadEventReciever {
 		public void xonNewText();
 	}
@@ -50,8 +79,9 @@ public class WebsocketStringService extends Service<Void> {
 				}
 				Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
 
-				//NetworkInterface ni = NetworkInterface.getByName(General.IF_NAME);
-				//NetworkInterface ni = NetworkInterface.getByInetAddress(InetAddress.getByName("192.168.178.20"));
+				// NetworkInterface ni = NetworkInterface.getByName(General.IF_NAME);
+				// NetworkInterface ni =
+				// NetworkInterface.getByInetAddress(InetAddress.getByName("192.168.178.20"));
 				NetworkInterface ni = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
 				dc.setOption(StandardSocketOptions.IP_MULTICAST_IF, ni);
 				mkkey = dc.join(InetAddress.getByName("224.0.0.1"), ni);
@@ -62,15 +92,28 @@ public class WebsocketStringService extends Service<Void> {
 			SelectionKey key = dc.register(selector, SelectionKey.OP_READ);
 			ByteBuffer byteBuffer = ByteBuffer.allocate(General.BUFFER_SIZE);
 
+			Ticker ticker = new Ticker(1200);
 			updateMessage("Running");
+			int transmitCounter = 0;
 			while (!isCancelled()) {
-				int channels = selector.select(General.SELECT_TIMEOUT);
+				int channels;
+				ticker.test();
+				if( ticker.isBehind())
+				{
+					channels = selector.selectNow();
+				}
+				else
+				{
+					channels = selector.select(ticker.nextTimeout());
+				}
 				if (channels == 0) {
 					// timeout
 					byteBuffer.clear();
 					byteBuffer.put("jfewofjewofjew".getBytes());
 					byteBuffer.flip();
 					dc.send(byteBuffer, General.FINAL_DESTINATION);
+					ticker.tick();
+					System.out.println("TRansmittCounter" + (++transmitCounter));
 				} else {
 					for (SelectionKey skey : selector.selectedKeys()) {
 						skey.channel();
