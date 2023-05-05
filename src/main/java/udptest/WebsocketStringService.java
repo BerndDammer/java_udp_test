@@ -60,6 +60,7 @@ public class WebsocketStringService extends Service<Void> {
 
         @Override
         protected Void call() throws Exception {
+            final CanMsgHeartbeat canMsgHeartbeat = new CanMsgHeartbeat();
             updateMessage("Starting");
             int counter = 0;
 
@@ -106,7 +107,7 @@ public class WebsocketStringService extends Service<Void> {
                 if (channels == 0) {
                     // timeout
                     byteBuffer.clear();
-                    byteBuffer.put("jfewofjewofjew".getBytes());
+                    canMsgHeartbeat.toBB(byteBuffer);
                     byteBuffer.flip();
                     dc.send(byteBuffer, General.FINAL_DESTINATION);
                     ticker.tick();
@@ -116,6 +117,8 @@ public class WebsocketStringService extends Service<Void> {
                         skey.channel();
                         byteBuffer.clear();
                         SocketAddress isa = dc.receive(byteBuffer);
+                        byteBuffer.flip();
+                        canMsgHeartbeat.fromBB(byteBuffer);
                         updateMessage("Got data from: " + isa + "  Count: " + counter++);
                         selector.selectedKeys().remove(skey); // nercessary ????
                     }
