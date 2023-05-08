@@ -4,6 +4,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.scene.layout.GridPane;
+import netinf.NetworkInterfaceView;
 
 public class MainframeController extends MainframeControllerValues {
 //implements NonFXThreadEventReciever {
@@ -13,6 +14,8 @@ public class MainframeController extends MainframeControllerValues {
     private final GridPane rootNode;
 
     public MainframeController() {
+        new NetworkInterfaceView().doit();
+        
         rootNode = new MainframeLoader(this);
 
         //////////////////////////////

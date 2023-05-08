@@ -12,6 +12,8 @@ public class FXMainApp extends Application {
         Scene scene = new Scene(mfc.getRootNode(), mfc.getRootNode().getPrefWidth(), mfc.getRootNode().getPrefHeight());
         stage.setTitle("UDP Multicast Test");
         stage.setScene(scene);
+        stage.centerOnScreen();
+        stage.sizeToScene();
         stage.show();
     }
 }
