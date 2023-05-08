@@ -1,18 +1,12 @@
 package udptest;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.MulticastSocket;
-import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.net.StandardProtocolFamily;
-import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.MembershipKey;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Enumeration;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javafx.concurrent.Service;
@@ -64,29 +58,12 @@ public class WebsocketStringService extends Service<Void> {
             updateMessage("Starting");
             int counter = 0;
 
-            DatagramChannel dc = DatagramChannel.open(StandardProtocolFamily.INET)
-                    .setOption(StandardSocketOptions.SO_BROADCAST, true)
-                    .setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true)
-                    .setOption(StandardSocketOptions.SO_REUSEADDR, true)
-                    .bind(new InetSocketAddress(General.MULTICAST_PORT));
+            DatagramChannel dc = DatagramChannel.open(StandardProtocolFamily.INET);
+            dc.bind(new InetSocketAddress(General.MULTICAST_PORT));
 
-            MembershipKey mkkey;
-            {
-                {
-                    MulticastSocket ms = new MulticastSocket();
-                    NetworkInterface ni = ms.getNetworkInterface();
-                    System.out.println(ni.getDisplayName());
-                    System.out.println(ni.getName());
-                }
-                Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+            final WorkaroundMulticastJoin workaroundMulticastJoin = new WorkaroundMulticastJoin(dc);
 
-                // NetworkInterface ni = NetworkInterface.getByName(General.IF_NAME);
-                // NetworkInterface ni =
-                // NetworkInterface.getByInetAddress(InetAddress.getByName("192.168.178.20"));
-                NetworkInterface ni = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
-                dc.setOption(StandardSocketOptions.IP_MULTICAST_IF, ni);
-                mkkey = dc.join(InetAddress.getByName("224.0.0.1"), ni);
-            }
+            workaroundMulticastJoin.join();
 
             Selector selector = Selector.open();
             dc.configureBlocking(false);
@@ -127,7 +104,7 @@ public class WebsocketStringService extends Service<Void> {
             selector.close();
             key.cancel();
 
-            mkkey.drop();
+            workaroundMulticastJoin.dropAll();
             dc.close();
 
             updateMessage("Bye!");
