@@ -1,21 +1,25 @@
 package udptest;
 
+import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.scene.layout.GridPane;
+import javafx.util.Duration;
 import netinf.NetworkInterfaceView;
+import udptest.WebsocketStringService.NonFXThreadEventReciever;
 
-public class MainframeController extends MainframeControllerValues {
+public class MainframeController extends MainframeControllerValues implements NonFXThreadEventReciever {
 //implements NonFXThreadEventReciever {
 
-//	private final FXTimer transmittWorker = new FXTimer(this::onTransmitt);
-    private final WebsocketStringService websocketService = new WebsocketStringService();
+	private final FXTimer transmittWorker = new FXTimer(this::onTransmitt);
+    private final WebsocketStringService websocketService = new WebsocketStringService(this);
     private final GridPane rootNode;
-
+    private final CanMsgHeartbeat canMsgHeartbeat = new CanMsgHeartbeat();
+    
     public MainframeController() {
         new NetworkInterfaceView().doit();
-        
+
         rootNode = new MainframeLoader(this);
 
         //////////////////////////////
@@ -27,15 +31,19 @@ public class MainframeController extends MainframeControllerValues {
         title.bind(websocketService.titleProperty());
 
         websocketService.stateProperty().addListener(this::onNewWorkerState);
+        
     }
 
     public void onStart(ActionEvent event) {
         websocketService.reset();
         websocketService.start();
+        transmittWorker.setRate(Duration.millis(2300));
+        transmittWorker.setEnabled(true);
     }
 
     public void onStop(ActionEvent event) {
         websocketService.cancel();
+        transmittWorker.setEnabled(false);
     }
 
     void onNewWorkerState(ObservableValue<? extends Worker.State> observable, Worker.State oldValue,
@@ -65,39 +73,35 @@ public class MainframeController extends MainframeControllerValues {
         return rootNode;
     }
 
-//	@Override
-//	public void xonNewText() {
-//		Platform.runLater(new Runnable() {
-//			@Override
-//			public void run() {
-//				try {
-//					final String newValue = websocketService.getSourceQueue().take();
-//
-//					if (itemsReceiveLogger.get().size() > General.LOG_AUTODELETE)
-//						itemsReceiveLogger.get().clear();
-//					itemsReceiveLogger.get().add(newValue);
-//
-//					JsonReader factory = Json.createReader(new StringReader(newValue));
-//					JsonStructure js = factory.read();
-//					JsonObject job = (JsonObject) js;
-//					{
-//						JsonArray hs = job.getJsonArray("H");
-//						bottomSensors[0].setValue(((JsonNumber) hs.get(0)).doubleValue() / 32768.0);
-//						bottomSensors[1].setValue(((JsonNumber) hs.get(1)).doubleValue() / 32768.0);
-//						bottomSensors[2].setValue(((JsonNumber) hs.get(2)).doubleValue() / 32768.0);
-//					}
-//					mileage.setValue("Mil: " + job.getInt("C"));
-//					speed.setValue("Speed: " + job.getInt("B"));
-//					{
-//						JsonArray hs = job.getJsonArray("D");
-//						int k = hs.getInt(0);
-//						int v = hs.getInt(1);
-//						sonics.get().put(k, v);
-//					}
-//				} catch (Exception e) {
-//					itemsReceiveLogger.get().add("Json Parsing Problem");
-//				}
-//			}
-//		}); // end of runnable
-//	}
+    private void onTransmitt()
+    {
+        CanMsg canMsg = canMsgHeartbeat.get();
+        if (outgoing.size() > General.LOG_AUTODELETE) {
+            outgoing.clear();
+        }
+        outgoing.add(canMsg);
+        websocketService.sendMsg(canMsg);
+    }
+
+    @Override
+    public void xonNewText(final CanMsg canMsg) {
+//        Platform.runLater(() -> {
+//            CanMsg newValue;
+//            try {
+//                newValue = websocketService.getSourceQueue().take();
+//                if (incomming.size() > General.LOG_AUTODELETE)
+//                    incomming.clear();
+//                incomming.add(newValue);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        });
+        Platform.runLater(() -> {
+            if (incomming.size() > General.LOG_AUTODELETE) {
+                incomming.clear();
+            }
+            incomming.add(canMsg);
+            canMsgHeartbeat.got(canMsg);
+        });
+    }
 }

@@ -25,4 +25,6 @@ public class MainframeControllerValues {
     public IntegerProperty countIncomming;
     public StringProperty exception;
 
+    public ObservableList<CanMsg> incomming;
+    public ObservableList<CanMsg> outgoing;
 }

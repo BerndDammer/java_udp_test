@@ -7,14 +7,17 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Logger;
 
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 
 // TODO add logger
 public class WebsocketStringService extends Service<Void> {
+    private static final Logger logger = Logger.getLogger(WebsocketStringService.class.getName());
+
     static class Ticker {
+
         private long nextEvent;
         private final long delayMs;
         private long thisTimeout;
@@ -44,8 +47,11 @@ public class WebsocketStringService extends Service<Void> {
     }
 
     public interface NonFXThreadEventReciever {
-        public void xonNewText();
+        public void xonNewText(final CanMsg canMsg);
     }
+
+    // TODO better Sync
+    DatagramChannel dc = null;
 
     public class WebsocketTask extends Task<Void> {
 
@@ -58,7 +64,8 @@ public class WebsocketStringService extends Service<Void> {
             updateMessage("Starting");
             int counter = 0;
 
-            DatagramChannel dc = DatagramChannel.open(StandardProtocolFamily.INET);
+//            DatagramChannel dc = DatagramChannel.open(StandardProtocolFamily.INET);
+            dc = DatagramChannel.open(StandardProtocolFamily.INET);
             dc.bind(new InetSocketAddress(General.MULTICAST_PORT));
 
             final WorkaroundMulticastJoin workaroundMulticastJoin = new WorkaroundMulticastJoin(dc);
@@ -72,7 +79,7 @@ public class WebsocketStringService extends Service<Void> {
 
             Ticker ticker = new Ticker(1200);
             updateMessage("Running");
-            int transmitCounter = 0;
+//            int transmitCounter = 0;
             while (!isCancelled()) {
                 int channels;
                 ticker.test();
@@ -83,19 +90,32 @@ public class WebsocketStringService extends Service<Void> {
                 }
                 if (channels == 0) {
                     // timeout
-                    byteBuffer.clear();
-                    canMsgHeartbeat.toBB(byteBuffer);
-                    byteBuffer.flip();
-                    dc.send(byteBuffer, General.FINAL_DESTINATION);
-                    ticker.tick();
-                    System.out.println("TRansmittCounter" + (++transmitCounter));
+//                    byteBuffer.clear();
+//                    canMsgHeartbeat.toBB(byteBuffer);
+//                    byteBuffer.flip();
+//                    dc.send(byteBuffer, General.FINAL_DESTINATION);
+//                    ticker.tick();
+//                    System.out.println("TRansmittCounter" + (++transmitCounter));
                 } else {
                     for (SelectionKey skey : selector.selectedKeys()) {
                         skey.channel();
                         byteBuffer.clear();
                         SocketAddress isa = dc.receive(byteBuffer);
                         byteBuffer.flip();
-                        canMsgHeartbeat.fromBB(byteBuffer);
+                        {
+                            int size = byteBuffer.limit() - byteBuffer.position();
+                            if(size != 16)
+                            {
+                                logger.info("Receive Size " + size);
+                            }
+                        }
+//                        canMsgHeartbeat.fromBB(byteBuffer);
+                        {
+                            final CanMsg canMsg = new CanMsg();
+                            canMsg.fromBB(byteBuffer);
+//                            sourceQueue.add(canMsg);
+                            nonFXThreadEventReciever.xonNewText(canMsg);
+                        }
                         updateMessage("Got data from: " + isa + "  Count: " + counter++);
                         selector.selectedKeys().remove(skey); // nercessary ????
                     }
@@ -112,25 +132,39 @@ public class WebsocketStringService extends Service<Void> {
         }
     }
 
-    public LinkedBlockingQueue<String> getSourceQueue() {
-        return sourceQueue;
-    }
+//    public LinkedBlockingQueue<CanMsg> getSourceQueue() {
+//        return sourceQueue;
+//    }
+//
+//    public LinkedBlockingQueue<CanMsg> getSinkQueue() {
+//        return sinkQueue;
+//    }
 
-    public LinkedBlockingQueue<String> getSinkQueue() {
-        return sinkQueue;
-    }
+//    private final LinkedBlockingQueue<CanMsg> sourceQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
+//    private final LinkedBlockingQueue<CanMsg> sinkQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
+    private final NonFXThreadEventReciever nonFXThreadEventReciever;
 
-    private final LinkedBlockingQueue<String> sourceQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
-    private final LinkedBlockingQueue<String> sinkQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
-//	private final NonFXThreadEventReciever nonFXThreadEventReciever;
-//	private URI uri;
-
-    public WebsocketStringService() {
+    public WebsocketStringService(final NonFXThreadEventReciever nonFXThreadEventReciever) {
+        this.nonFXThreadEventReciever = nonFXThreadEventReciever;
     }
 
     @Override
     protected Task<Void> createTask() {
 
         return new WebsocketTask();
+    }
+
+    // TODO best Way to transmitt
+    public void sendMsg(CanMsg canMsg) {
+        // TODO Auto-generated method stub
+        ByteBuffer bb = ByteBuffer.allocate(16);
+        canMsg.toBB(bb);
+        bb.flip();
+        try {
+            // TODO chech dc valid
+            dc.send(bb, General.FINAL_DESTINATION);
+        } catch (Exception e) {
+            logger.warning(e.getMessage());
+        }
     }
 }

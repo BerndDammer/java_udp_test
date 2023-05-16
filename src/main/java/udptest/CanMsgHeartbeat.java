@@ -49,4 +49,41 @@ public class CanMsgHeartbeat extends CanMsg {
         logger.info("[23]" + ((int)bb.getShort() & 0XFFFF));
         
     }
+
+    public void got(CanMsg canMsg) {
+        if( canMsg.getId() != CAN_ID_HEARTBEAT)
+        {
+            logger.warning("Wrong CAN ID");
+        }
+        else
+        {
+            canMsg.getData().clear();
+            lastSeen = canMsg.getData().getShort();
+            lastRec = System.currentTimeMillis();
+        }
+    }
+    public CanMsg get()
+    {
+        counter++;
+        CanMsg result = new CanMsg();
+        result.id = CanMsg.CAN_ID_HEARTBEAT;
+        result.len = 8;
+        result.data.clear();
+        result.data.order(ByteOrder.LITTLE_ENDIAN);
+        final ByteBuffer bb = result.data;
+        {
+            bb.putShort(counter);
+            if( System.currentTimeMillis() <= lastRec + VALID_TIMEOUT_MS)
+            {
+               bb.putShort(lastSeen);
+            }
+            else
+            {
+                bb.putShort( (short)0XFFFF);
+            }
+            bb.putShort((short)0);
+            bb.putShort((short)0);
+        }
+        return result;
+    }
 }

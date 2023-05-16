@@ -20,6 +20,9 @@ public class MainframeLoader extends GridPane2 {
         final Label totalWork = new Label();
         final Label countIncomming = new Label();
         final Label exception = new Label();
+        
+        final CanMsgView2 incomming = new CanMsgView2();
+        final CanMsgView2 outgoing = new CanMsgView2();
 
         // colum row
         add(new Label("Title"), 0, 0);
@@ -31,6 +34,9 @@ public class MainframeLoader extends GridPane2 {
         add(startButton, 0, 8, INSERTING.CENTER);
         add(stopButton, 1, 8, INSERTING.CENTER);
 
+        add(incomming, 0, 9);
+        add(outgoing, 1, 9);
+
         ///////////////////////////////
         //// Make Property connections
         mainframeControllerValues.disablePropertyStartButton = startButton.disableProperty();
@@ -40,5 +46,8 @@ public class MainframeLoader extends GridPane2 {
         mainframeControllerValues.message = message.textProperty();
         mainframeControllerValues.title = title.textProperty();
         mainframeControllerValues.stateWorker = transmitSpeed.getItems();
+ 
+        mainframeControllerValues.incomming = incomming.getItems();
+        mainframeControllerValues.outgoing = outgoing.getItems();
     }
 }

@@ -28,7 +28,7 @@ public class WorkaroundMulticastJoin {
 
     private static final Logger logger = Logger.getLogger(WorkaroundMulticastJoin.class.getName());
 
-    private final InetAddress AllSystemsMulticast;
+    private final InetAddress allSystemsMulticast;
     private final DatagramChannel datagramChannel;
 
     private final Map<NetworkInterface, MembershipKey> joins = new LinkedHashMap<>();
@@ -37,9 +37,9 @@ public class WorkaroundMulticastJoin {
 
         this.datagramChannel = datagramChannel;
 //        joinMethod = JOIN_METHOD.GET_BY_HOST;
-        joinMethod = JOIN_METHOD.ALL;
+        joinMethod = JOIN_METHOD.GET_BY_HOST;
 
-        AllSystemsMulticast = InetAddress.getByName("224.0.0.1");
+        allSystemsMulticast = InetAddress.getByName("224.0.0.1");
 
         datagramChannel.setOption(StandardSocketOptions.SO_BROADCAST, true);
         datagramChannel.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
@@ -68,7 +68,7 @@ public class WorkaroundMulticastJoin {
 
             networkInterface = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
             datagramChannel.setOption(StandardSocketOptions.IP_MULTICAST_IF, networkInterface);
-            membershipKey = datagramChannel.join(AllSystemsMulticast, networkInterface);
+            membershipKey = datagramChannel.join(allSystemsMulticast, networkInterface);
 
             joins.put(networkInterface, membershipKey);
 
@@ -88,7 +88,7 @@ public class WorkaroundMulticastJoin {
             try {
                 final MembershipKey membershipKey;
 
-                membershipKey = datagramChannel.join(AllSystemsMulticast, networkInterface);
+                membershipKey = datagramChannel.join(allSystemsMulticast, networkInterface);
 
                 // DONT set this value or no outgoing packages
 //                datagramChannel.setOption(StandardSocketOptions.IP_MULTICAST_IF, networkInterface);

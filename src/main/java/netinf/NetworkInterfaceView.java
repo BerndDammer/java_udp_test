@@ -154,7 +154,6 @@ public class NetworkInterfaceView {
         {
             addColumn("Name", (ni) -> ni.getName());
             addColumn("Display Name", (ni) -> ni.getDisplayName());
-
             addColumn("multicast", (n) -> Boolean.toString(n.supportsMulticast()));
             addColumn("local", (n) -> Boolean.toString(n.isLoopback()));
             addColumn("mac", new CellFacMAC());
