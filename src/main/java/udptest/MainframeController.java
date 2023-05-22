@@ -7,13 +7,13 @@ import javafx.event.ActionEvent;
 import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 import netinf.NetworkInterfaceView;
-import udptest.WebsocketStringService.NonFXThreadEventReciever;
+import udptest.WebsocketStringServiceBroadcast.NonFXThreadEventReciever;
 
 public class MainframeController extends MainframeControllerValues implements NonFXThreadEventReciever {
 //implements NonFXThreadEventReciever {
 
 	private final FXTimer transmittWorker = new FXTimer(this::onTransmitt);
-    private final WebsocketStringService websocketService = new WebsocketStringService(this);
+    private final WebsocketStringServiceBroadcast websocketService = new WebsocketStringServiceBroadcast(this);
     private final GridPane rootNode;
     private final CanMsgHeartbeat canMsgHeartbeat = new CanMsgHeartbeat();
     

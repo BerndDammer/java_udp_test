@@ -13,8 +13,8 @@ import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 
 // TODO add logger
-public class WebsocketStringService extends Service<Void> {
-    private static final Logger logger = Logger.getLogger(WebsocketStringService.class.getName());
+public class WebsocketStringServiceMulticast extends Service<Void> {
+    private static final Logger logger = Logger.getLogger(WebsocketStringServiceMulticast.class.getName());
 
     static class Ticker {
 
@@ -144,7 +144,7 @@ public class WebsocketStringService extends Service<Void> {
 //    private final LinkedBlockingQueue<CanMsg> sinkQueue = new LinkedBlockingQueue<>(General.QUEUE_DEPTH);
     private final NonFXThreadEventReciever nonFXThreadEventReciever;
 
-    public WebsocketStringService(final NonFXThreadEventReciever nonFXThreadEventReciever) {
+    public WebsocketStringServiceMulticast(final NonFXThreadEventReciever nonFXThreadEventReciever) {
         this.nonFXThreadEventReciever = nonFXThreadEventReciever;
     }
 

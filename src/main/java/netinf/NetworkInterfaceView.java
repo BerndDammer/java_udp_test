@@ -97,6 +97,26 @@ public class NetworkInterfaceView {
             return "nix";
         }
     }
+
+    private class CellFacIPBroad extends CellFactoryBase {
+        private final int index;
+
+        CellFacIPBroad(int index) {
+            this.index = index;
+        }
+
+        @Override
+        String cellFunction(NetworkInterface networkInterface) throws Exception {
+            List<InterfaceAddress> ips = networkInterface.getInterfaceAddresses();
+            if(index < ips.size())
+            {
+                InterfaceAddress ia = ips.get(index);
+                InetAddress ib = ia.getBroadcast();
+                return ib != null ? ib.getHostAddress() : "null";
+            }
+            return "nix";
+        }
+    }
     private class CellFacIAIndex extends CellFactoryBase {
         private final int index;
 
@@ -167,7 +187,9 @@ public class NetworkInterfaceView {
             addColumn("IP 2", new CellFacIPIndex(1));
             addColumn("IAcnt", (n)-> Integer.toString(n.getInterfaceAddresses().size()));
             addColumn("IA 1", new CellFacIAIndex(0));
+            addColumn("1Broad", new CellFacIPBroad(0));
             addColumn("IA 2", new CellFacIAIndex(1));
+            addColumn("2Broad", new CellFacIPBroad(1));
         }
 
         Scene scene = new Scene(table, Color.ROSYBROWN);
