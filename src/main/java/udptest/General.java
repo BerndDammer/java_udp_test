@@ -23,7 +23,8 @@ public class General {
     static {
         InetSocketAddress isa;
         try {
-            isa = new InetSocketAddress(InetAddress.getByName("224.0.0.1"), 50000);
+            //isa = new InetSocketAddress(InetAddress.getByName("224.0.0.1"), 50000);
+            isa = new InetSocketAddress(InetAddress.getByName("255.255.255.255"), 50000);
         } catch (UnknownHostException e) {
             isa = null; // this should never happen
         }
